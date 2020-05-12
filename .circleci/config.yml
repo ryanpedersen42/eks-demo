@@ -1,0 +1,105 @@
+version: 2.1
+jobs:
+  setup:
+    docker:
+      - image: circleci/node:10.15.3
+    working_directory: ~/app
+    steps:
+      - checkout
+      - run:
+          name: Update npm
+          command: "sudo npm install -g npm@latest"
+      - restore_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "package.json" }}
+      - run:
+          name: Install npm
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "package.json" }}
+          paths:
+            - node_modules
+      - save_cache:
+          key: v1-repo-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - ~/app
+  test:
+    docker:
+      - image: circleci/node:10.15.3
+    working_directory: ~/app
+    steps:
+      - restore_cache:
+          key: v1-repo-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "package.json" }}
+      - run:
+          name: Test code
+          command: npm test
+      - persist_to_workspace:
+          root: ~/app
+          paths:
+            - .
+
+  build_image_and_deploy_staging:
+    docker:
+      - image: circleci/python:3.7
+
+    working_directory: ~/app
+
+    steps:
+      - attach_workspace:
+          at: ~/app
+
+      - run:
+          name: Install awscli and gettext-base
+          command: |
+            sudo pip3 install awscli
+      - run:
+          name: Install aws-iam-authenticator
+          command: |
+            curl -o aws-iam-authenticator curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.13.7/2019-06-11/bin/linux/amd64/aws-iam-authenticator
+            chmod +x ./aws-iam-authenticator
+            sudo mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+      - run:
+          name: Install kubectl
+          command: |
+            curl -o kubectl https://amazon-eks.s3-us-west-2.amazonaws.com/1.13.7/2019-06-11/bin/linux/amd64/kubectl
+            chmod +x ./kubectl
+            sudo mv ./kubectl /usr/local/bin/kubectl
+
+      - setup_remote_docker
+
+      - run:
+          name: Login to repository and build docker image
+          command: |
+            eval $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+            docker build -t ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM} .
+            docker push ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
+      - run:
+          name: Prepare K8S templates
+          command: |
+            aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME
+            rm -rf .k8s/.generated && mkdir -p .k8s/.generated
+            for f in .k8s/templates/staging.yml
+              do
+              envsubst < $f > ".k8s/.generated/$(basename $f)"
+            done
+      - run:
+          name: Deploy
+          command: |
+            kubectl apply -f .k8s/.generated/ --validate=true
+            kubectl get pod
+
+workflows:
+  build-test-and-deploy:
+    jobs:
+      - setup
+      - test:
+          requires:
+            - setup
+      - build_image_and_deploy_staging:
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - master
