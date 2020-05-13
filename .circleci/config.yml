@@ -14,8 +14,7 @@ jobs:
       - node/install:
           node-version: "13.10.1"
       - run: node --version
-      - node/install-packages:
-          app-dir: ~/app
+      - node/install-packages
   test:
     docker:
       - image: circleci/node:13.10.1
@@ -56,7 +55,7 @@ workflows:
       - test:
           requires:
             - build
-      - build_image_and_deploy_staging:
+      - deploy_staging:
           requires:
             - test
           filters:
