@@ -1,6 +1,7 @@
 version: 2.1
 orbs:
   aws-ecr: circleci/aws-ecr@6.8.2
+  kube-orb: circleci/kubernetes@0.11.0
 
 jobs:
   setup:
@@ -62,18 +63,23 @@ jobs:
             curl -o aws-iam-authenticator curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.13.7/2019-06-11/bin/linux/amd64/aws-iam-authenticator
             chmod +x ./aws-iam-authenticator
             sudo mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
-      - run:
-          name: Install kubectl
-          command: |
-            curl -o kubectl https://amazon-eks.s3-us-west-2.amazonaws.com/1.13.7/2019-06-11/bin/linux/amd64/kubectl
-            chmod +x ./kubectl
-            sudo mv ./kubectl /usr/local/bin/kubectl
+      # - run:
+      #     name: Install kubectl
+      #     command: |
+      #       curl -o kubectl https://amazon-eks.s3-us-west-2.amazonaws.com/1.13.7/2019-06-11/bin/linux/amd64/kubectl
+      #       chmod +x ./kubectl
+      #       sudo mv ./kubectl /usr/local/bin/kubectl
 
       - setup_remote_docker
       - aws-ecr/build-and-push-image:
           repo: ${REPOSITORY_NAME}
           tag: ${CIRCLE_BUILD_NUM}
-      # - run:
+      - kube-orb/install-kubectl
+      # - kube-orb/update-container-image
+      - run:
+          name: kubectl command 
+          command: | 
+            kubectl set image deployment/eks-demo eks-demo=${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BUILD_NUM}
       #     name: Login to repository and build docker image
       #     command: |
       #       # eval $(aws ecr get-login-password --region $AWS_DEFAULT_REGION --no-include-email)
@@ -81,20 +87,20 @@ jobs:
       #       docker login --username AWS --password-stdin 241099261431.dkr.ecr.us-east-1.amazonaws.com
       #       docker build -t ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM} .
       #       docker push ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
-      - run:
-          name: Prepare K8S templates
-          command: |
-            aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME
-            rm -rf .k8s/.generated && mkdir -p .k8s/.generated
-            for f in .k8s/templates/staging.yml
-              do
-              envsubst < $f > ".k8s/.generated/$(basename $f)"
-            done
-      - run:
-          name: Deploy
-          command: |
-            kubectl apply -f .k8s/.generated/ --validate=true
-            kubectl get pod
+      # - run:
+      #     name: Prepare K8S templates
+      #     command: |
+      #       aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME
+      #       rm -rf .k8s/.generated && mkdir -p .k8s/.generated
+      #       for f in .k8s/templates/staging.yml
+      #         do
+      #         envsubst < $f > ".k8s/.generated/$(basename $f)"
+      #       done
+      # - run:
+      #     name: Deploy
+      #     command: |
+      #       kubectl apply -f .k8s/.generated/ --validate=true
+      #       kubectl get pod
 
 workflows:
   build-test-and-deploy:
