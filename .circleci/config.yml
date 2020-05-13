@@ -1,4 +1,7 @@
 version: 2.1
+orbs:
+  aws-ecr: circleci/aws-ecr@6.8.2
+
 jobs:
   setup:
     docker:
@@ -67,14 +70,17 @@ jobs:
             sudo mv ./kubectl /usr/local/bin/kubectl
 
       - setup_remote_docker
-
-      - run:
-          name: Login to repository and build docker image
-          command: |
-            aws ecr get-login-password --region us-east-1 \
-            docker login --username AWS --password-stdin ${AWS_REPOSITORY_URL}
-            docker build -t ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM} .
-            docker push ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
+      - aws-ecr/build-and-push-image:
+          repo: ${REPOSITORY_NAME}
+          tag: ${CIRCLE_BUILD_NUM}
+      # - run:
+      #     name: Login to repository and build docker image
+      #     command: |
+      #       # eval $(aws ecr get-login-password --region $AWS_DEFAULT_REGION --no-include-email)
+      #       aws ecr get-login-password --region us-east-1 \
+      #       docker login --username AWS --password-stdin 241099261431.dkr.ecr.us-east-1.amazonaws.com
+      #       docker build -t ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM} .
+      #       docker push ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
       - run:
           name: Prepare K8S templates
           command: |
