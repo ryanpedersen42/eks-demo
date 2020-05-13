@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: app-staging
-          image: ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
+          image: ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BUILD_NUM}
           ports:
             - containerPort: 3000
           envFrom:
