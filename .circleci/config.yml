@@ -46,7 +46,15 @@ jobs:
           name: kubectl command 
           command: | 
             kubectl set image deployment/eks-demo ${REPOSITORY_NAME}=${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BUILD_NUM}
-
+      - run:
+          name: prepare k8s templates 
+          command: | 
+            aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name rp-ccits-eks-demo
+            rm -rf .k8s/.generated && mkdir -p .k8s/.generated
+            for f in .k8s/templates/staging.yml
+              do
+              envsubst < $f > ".k8s/.generated/$(basename $f)"
+            done
 workflows:
   build-test-and-deploy:
     jobs:
