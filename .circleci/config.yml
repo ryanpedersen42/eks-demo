@@ -23,8 +23,7 @@ jobs:
       - node/install:
           node-version: "13.10.1"
       - run: node --version
-      - node/install-packages:
-          app-dir: ~/react-app
+      - node/install-packages
       - run:
           name: Test application 
           command: npm test
