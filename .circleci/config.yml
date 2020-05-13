@@ -71,7 +71,8 @@ jobs:
       - run:
           name: Login to repository and build docker image
           command: |
-            eval $(aws ecr get-login-password --region $AWS_DEFAULT_REGION --no-include-email)
+            aws ecr get-login-password --region us-east-1 \
+            docker login --username AWS --password-stdin ${AWS_REPOSITORY_URL}
             docker build -t ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM} .
             docker push ${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
       - run:
