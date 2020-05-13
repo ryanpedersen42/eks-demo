@@ -30,7 +30,7 @@ jobs:
           command: npm test
           when: always
 
-  build_image_and_deploy_staging:
+  deploy_staging:
     docker:
       - image: circleci/python:3.7
     steps:
