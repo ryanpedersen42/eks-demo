@@ -34,6 +34,7 @@ jobs:
   build_image_and_deploy_staging:
     docker:
       - image: circleci/python:3.7
+    steps:
       - setup_remote_docker
       - aws-ecr/build-and-push-image:
           repo: ${REPOSITORY_NAME}
