@@ -3,68 +3,37 @@ orbs:
   aws-ecr: circleci/aws-ecr@6.8.2
   kube-orb: circleci/kubernetes@0.11.0
   aws-eks: circleci/aws-eks@0.2.7
+  node: circleci/node@2.1.0
 
 jobs:
-  setup:
+  build:
     docker:
-      - image: circleci/node:10.15.3
-    working_directory: ~/app
+      - image: circleci/node:13.10.1
     steps:
       - checkout
-      - run:
-          name: Update npm
-          command: "sudo npm install -g npm@latest"
-      - restore_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "package.json" }}
-      - run:
-          name: Install npm
-          command: npm install
-      - save_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "package.json" }}
-          paths:
-            - node_modules
-      - save_cache:
-          key: v1-repo-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
-          paths:
-            - ~/app
+      - node/install:
+          node-version: "13.10.1"
+      - run: node --version
+      - node/install-packages:
+          app-dir: ~/app
   test:
     docker:
-      - image: circleci/node:10.15.3
-    working_directory: ~/app
+      - image: circleci/node:13.10.1
     steps:
-      - restore_cache:
-          key: v1-repo-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
-      - restore_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "package.json" }}
+      - checkout
+      - node/install:
+          node-version: "13.10.1"
+      - run: node --version
+      - node/install-packages:
+          app-dir: ~/react-app
       - run:
-          name: Test code
+          name: Test application 
           command: npm test
-      - persist_to_workspace:
-          root: ~/app
-          paths:
-            - .
+          when: always
 
   build_image_and_deploy_staging:
     docker:
       - image: circleci/python:3.7
-
-    working_directory: ~/app
-
-    steps:
-      - attach_workspace:
-          at: ~/app
-
-      # - run:
-      #     name: Install awscli and gettext-base
-      #     command: |
-      #       sudo pip3 install awscli
-      # - run:
-      #     name: Install aws-iam-authenticator
-      #     command: |
-      #       curl -o aws-iam-authenticator curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.13.7/2019-06-11/bin/linux/amd64/aws-iam-authenticator
-      #       chmod +x ./aws-iam-authenticator
-      #       sudo mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
-
       - setup_remote_docker
       - aws-ecr/build-and-push-image:
           repo: ${REPOSITORY_NAME}
@@ -82,10 +51,10 @@ jobs:
 workflows:
   build-test-and-deploy:
     jobs:
-      - setup
+      - build
       - test:
           requires:
-            - setup
+            - build
       - build_image_and_deploy_staging:
           requires:
             - test
