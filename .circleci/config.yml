@@ -2,6 +2,7 @@ version: 2.1
 orbs:
   aws-ecr: circleci/aws-ecr@6.8.2
   kube-orb: circleci/kubernetes@0.11.0
+  aws-eks: circleci/aws-eks@0.2.7
 
 jobs:
   setup:
@@ -75,7 +76,9 @@ jobs:
           repo: ${REPOSITORY_NAME}
           tag: ${CIRCLE_BUILD_NUM}
       - kube-orb/install-kubectl
-      # - kube-orb/update-container-image
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: rp-ccits-eks-demo
+          aws-region: us-east-2
       - run:
           name: kubectl command 
           command: | 
