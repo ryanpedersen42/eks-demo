@@ -50,7 +50,7 @@ jobs:
           name: prepare k8s templates 
           command: | 
             aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name rp-ccits-eks-demo
-            kubectl apply -f .k8s/staging.yml --validate=true
+            kubectl apply -f .k8s/templates/staging.yml --validate=true
 
           
 workflows:
