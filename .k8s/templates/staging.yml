@@ -4,9 +4,6 @@ metadata:
   name: app-config
   labels:
     app: app-staging
-data:
-  ENV_VALUE1: ${STAGING_ENV_VALUE1}
-  ENV_VALUE2: ${ENV_VALUE2}
 
 ---
 apiVersion: apps/v1beta1
