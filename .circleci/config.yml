@@ -27,7 +27,6 @@ jobs:
       - run:
           name: Test application 
           command: npm test
-          when: always
 
   deploy_staging:
     docker:
@@ -39,7 +38,7 @@ jobs:
           tag: ${CIRCLE_BUILD_NUM}
       - kube-orb/install-kubectl
       - aws-eks/update-kubeconfig-with-authenticator:
-          cluster-name: rp-ccits-eks-demo
+          cluster-name: ${CLUSTER_NAME}
           aws-region: us-east-2
           install-kubectl: true
       - run:
@@ -49,10 +48,9 @@ jobs:
       - run:
           name: prepare k8s templates 
           command: | 
-            aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name rp-ccits-eks-demo
+            aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name ${CLUSTER_NAME}
             kubectl apply -f .k8s/templates/staging.yml --validate=true
 
-          
 workflows:
   build-test-and-deploy:
     jobs:
