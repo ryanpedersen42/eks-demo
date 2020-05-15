@@ -1,7 +1,6 @@
 version: 2.1
 orbs:
   aws-ecr: circleci/aws-ecr@6.8.2
-  kube-orb: circleci/kubernetes@0.11.0
   aws-eks: circleci/aws-eks@0.2.7
   node: circleci/node@2.1.0
 
@@ -41,11 +40,11 @@ jobs:
           aws-region: us-east-2
           install-kubectl: true
       - run:
-          name: kubectl command 
+          name: kubectl set image 
           command: | 
             kubectl set image deployment/eks-demo ${REPOSITORY_NAME}=${AWS_REPOSITORY_URL}/${REPOSITORY_NAME}:${CIRCLE_BUILD_NUM}
       - run:
-          name: prepare k8s templates 
+          name: prepare and apply k8s templates 
           command: | 
             aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name ${CLUSTER_NAME}
             kubectl apply -f .k8s/templates/staging.yml --validate=true
