@@ -36,7 +36,6 @@ jobs:
       - aws-ecr/build-and-push-image:
           repo: ${REPOSITORY_NAME}
           tag: ${CIRCLE_BUILD_NUM}
-      - kube-orb/install-kubectl
       - aws-eks/update-kubeconfig-with-authenticator:
           cluster-name: ${CLUSTER_NAME}
           aws-region: us-east-2
